@@ -1,0 +1,199 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#define MESSAGE_FILE "messages.txt"
+#define FRIENDS_FILE "friends.txt"
+
+// --- Linked list structures ---
+typedef struct Friend {
+    char name[50];
+    struct Friend *next;
+} Friend;
+
+typedef struct Message {
+    char sender[50];
+    char receiver[50];
+    char content[500];
+    struct Message *next;
+} Message;
+
+// --- Utility functions ---
+void trim_newline(char *str) {
+    str[strcspn(str, "\n")] = 0;
+}
+
+// Load friends of a user into a linked list
+Friend* load_friends(const char *username) {
+    Friend *head = NULL, *tail = NULL;
+    FILE *fp = fopen(FRIENDS_FILE, "r");
+    if (!fp) return NULL;
+
+    char line[200];
+    while (fgets(line, sizeof(line), fp)) {
+        trim_newline(line);
+        char u1[50], u2[50];
+        sscanf(line, "%49s %49s", u1, u2);
+
+        char *friend_name = NULL;
+        if (strcmp(u1, username) == 0) friend_name = u2;
+        else if (strcmp(u2, username) == 0) friend_name = u1;
+
+        if (friend_name) {
+            Friend *node = (Friend*)malloc(sizeof(Friend));
+            strcpy(node->name, friend_name);
+            node->next = NULL;
+            if (!head) head = tail = node;
+            else { tail->next = node; tail = node; }
+        }
+    }
+    fclose(fp);
+    return head;
+}
+
+// Load all messages into linked list
+Message* load_messages() {
+    Message *head = NULL, *tail = NULL;
+    FILE *fp = fopen(MESSAGE_FILE, "r");
+    if (!fp) return NULL;
+
+    char line[600];
+    while (fgets(line, sizeof(line), fp)) {
+        trim_newline(line);
+        char sender[50], receiver[50], content[500];
+        sscanf(line, "%49s %49s %[^\n]", sender, receiver, content);
+
+        Message *node = (Message*)malloc(sizeof(Message));
+        strcpy(node->sender, sender);
+        strcpy(node->receiver, receiver);
+        strcpy(node->content, content);
+        node->next = NULL;
+
+        if (!head) head = tail = node;
+        else { tail->next = node; tail = node; }
+    }
+    fclose(fp);
+    return head;
+}
+
+// Append a message to file
+void save_message(const char *sender, const char *receiver, const char *content) {
+    FILE *fp = fopen(MESSAGE_FILE, "a");
+    if (fp) {
+        fprintf(fp, "%s %s %s\n", sender, receiver, content);
+        fclose(fp);
+    }
+}
+
+// Free linked list memory
+void free_friends(Friend *head) {
+    Friend *temp;
+    while (head) { temp = head; head = head->next; free(temp); }
+}
+
+void free_messages(Message *head) {
+    Message *temp;
+    while (head) { temp = head; head = head->next; free(temp); }
+}
+
+// --- Main CGI ---
+int main(void) {
+    printf("Content-Type: text/html\n\n");
+
+    // --- Check session ---
+    FILE *sf = fopen("session.txt", "r");
+    char user[50];
+    if (!sf || !fgets(user, sizeof(user), sf)) {
+        if (sf) fclose(sf);
+        printf("<html><body><h3>Access Denied. Please <a href='/chat_app/signin.html'>Sign in</a>.</h3></body></html>");
+        return 0;
+    }
+    trim_newline(user);
+    fclose(sf);
+
+    // --- Process GET query ---
+    char *query = getenv("QUERY_STRING");
+    char receiver[50] = "", content[500] = "";
+    if (query && strstr(query, "receiver=") && strstr(query, "content=")) {
+        sscanf(query, "receiver=%49[^&]&content=%499[^\n]", receiver, content);
+        // Replace '+' with space
+        for (int i = 0; content[i]; i++) if (content[i]=='+') content[i]=' ';
+        for (int i = 0; receiver[i]; i++) if (receiver[i]=='+') receiver[i]=' ';
+        if (strlen(receiver) > 0 && strlen(content) > 0) {
+            save_message(user, receiver, content);
+        }
+    }
+
+    // --- Load friends and messages ---
+    Friend *friends = load_friends(user);
+    Message *messages = load_messages();
+
+    // --- Output HTML ---
+    printf("<html><head><title>Chat Messaging | ChatMate</title>");
+    printf("<style>");
+    printf("body,html{margin:0;padding:0;font-family:Arial,sans-serif;}");
+    printf(".container{display:flex;height:100vh;}");
+    printf(".left{flex:1;background-color:#00b4d8;padding:20px;overflow-y:auto;}");
+    printf(".right{flex:2;background-color:#1e90ff;color:#fff;display:flex;flex-direction:column;padding:20px;}");
+    printf("h2{font-size:40px;text-align:center;margin-bottom:20px;}");
+    printf("form{display:flex;flex-direction:column;width:80%%;max-width:500px;margin:auto;}");
+    printf("textarea,input,select{margin-bottom:15px;padding:10px;border-radius:8px;border:none;font-size:16px;}");
+    printf("input[type=submit]{background:#00b4d8;color:white;font-weight:bold;cursor:pointer;}");
+    printf("input[type=submit]:hover{background:#0096c7;}");
+    printf(".chat-box{flex:1;border:1px solid #fff;border-radius:10px;margin-bottom:20px;padding:10px;overflow-y:scroll;background-color:#0077b6;}");
+    printf("</style></head><body>");
+    printf("<div class='container'>");
+
+    // --- Left: Friend List ---
+    printf("<div class='left'><h3>Friends</h3><ul>");
+    Friend *f = friends;
+    while (f) {
+        printf("<li><a href='/cgi-bin/chat.cgi?receiver=%s'>%s</a></li>", f->name, f->name);
+        f = f->next;
+    }
+    if (!friends) printf("<li>No friends added yet</li>");
+    printf("</ul></div>");
+
+    // --- Right: Chat Box and Form ---
+    printf("<div class='right'>");
+    printf("<h2>Chat Messaging</h2>");
+    printf("<div class='chat-box'>");
+    // Display messages for this conversation (if receiver selected)
+    if (strlen(receiver) > 0) {
+        Message *m = messages;
+        while (m) {
+            if ((strcmp(m->sender, user)==0 && strcmp(m->receiver, receiver)==0) ||
+                (strcmp(m->sender, receiver)==0 && strcmp(m->receiver, user)==0)) {
+                printf("<p><b>%s:</b> %s</p>", m->sender, m->content);
+            }
+            m = m->next;
+        }
+    } else {
+        printf("<p>Select a friend to start chatting.</p>");
+    }
+    printf("</div>");
+
+    // Chat form
+    printf("<form action='/cgi-bin/chat.cgi' method='get'>");
+    printf("<label>Receiver:</label>");
+    printf("<select name='receiver' required>");
+    f = friends;
+    while (f) {
+        printf("<option value='%s'%s>%s</option>", f->name, (strcmp(f->name, receiver)==0)?" selected":"", f->name);
+        f = f->next;
+    }
+    printf("</select>");
+    printf("<label>Message:</label>");
+    printf("<textarea name='content' rows='4' required></textarea>");
+    printf("<input type='submit' value='Send Message'>");
+    printf("</form>");
+
+    printf("<a href='/chat_app/index.html'>Back to Home</a>");
+    printf("</div></div></body></html>");
+
+    // Free memory
+    free_friends(friends);
+    free_messages(messages);
+
+    return 0;
+}
