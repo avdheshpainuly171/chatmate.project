@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChatMate</title>
+<style>
+/* Custom CSS for a dark, clean chat interface */
+body{margin:0;font-family:sans-serif;background:#0d1117;color:#e6edf3;height:100vh;display:flex;}
+.container{display:flex;width:100%;height:100%;}
+.friend-list{width:250px;background:#161b22;border-right:1px solid #30363d;overflow-y:auto;display: flex; flex-direction: column;}
+.friend-list h3{text-align:center;margin:0;padding:15px;border-bottom:1px solid #30363d;background:#1f242b;}
+.friend-list-content { flex-grow: 1; overflow-y: auto; } /* New container for scrollable friends */
+
+/* Styling for the Action Buttons (Logout and Manage) */
+.action-buttons {
+    display: flex;
+    padding: 10px;
+    border-top: 1px solid #21262d;
+    background: #1f242b;
+    gap: 10px;
+}
+.action-buttons a {
+    flex: 1;
+    text-decoration: none;
+    font-weight: bold;
+    padding: 8px 0;
+    text-align: center;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    display: block;
+}
+.logout-btn a {
+    color: #ff7b72;
+    border: 1px solid #ff7b72;
+}
+.logout-btn a:hover {
+    background: rgba(255, 123, 114, 0.1);
+}
+.manage-btn a {
+    color: #58a6ff;
+    border: 1px solid #58a6ff;
+}
+.manage-btn a:hover {
+    background: rgba(88, 166, 255, 0.1);
+}
+
+.friend{padding:10px 15px;cursor:pointer;border-bottom:1px solid #21262d;transition:background 0.2s;color: #c9d1d9;}
+.friend:hover{background:#1f242b;}
+.friend.active{background:#238636;color:white;} /* Updated active color for better contrast */
+.chat-window{flex-grow:1;display:flex;flex-direction:column;max-width:calc(100% - 250px);}
+.chat-header{padding:15px;background:#161b22;border-bottom:1px solid #30363d;font-size:1.2em;font-weight:bold;text-align:center;}
+.chat-box{flex-grow:1;padding:20px;overflow-y:auto;background:#0d1117; display: flex; flex-direction: column;}
+.chat-input{padding:10px 20px;background:#1f242b;display:flex;}
+.chat-input form { flex-grow: 1; display: flex; } /* Ensure form takes full width */
+.chat-input input{flex-grow:1;padding:10px;border:1px solid #30363d;border-radius:5px;background:#21262d;color:#e6edf3;margin-right:10px;font-size:1em; outline: none;}
+.chat-input input:focus { border-color: #238636; }
+.chat-input button{padding:10px 15px;background:#238636;color:white;border:none;border-radius:5px;cursor:pointer;transition:background 0.2s;}
+.chat-input button:hover{background:#2ea043;}
+.msg{margin-bottom:10px;padding:8px 12px;border-radius:15px;max-width:70%;word-wrap:break-word;}
+.msg.me{background:#238636;color:white;align-self:flex-end;margin-left:auto;}
+.msg.friend-msg{background:#30363d;color:#e6edf3;align-self:flex-start;margin-right:auto;}
+/* Hidden state for when no friend is selected */
+#noChatSelected {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+    color: #6a737d;
+    text-align: center;
+    height: 100%;
+}
+
+</style>
+</head>
+<body>
+
+<div class="container">
+    <!-- Friend List Sidebar -->
+    <div class="friend-list">
+        <h3>Friends</h3>
+        <div class="friend-list-content" id="friendList">
+            <p style="padding: 15px; text-align: center; color: #7f8b96;">Loading friends...</p>
+        </div>
+        
+        <!-- Reinstated Action Buttons (Manage Friends and Logout) -->
+        <div class="action-buttons">
+            <div class="manage-btn">
+                <a href="/cgi-bin/manage_friend.cgi">Manage Friends</a>
+            </div>
+            <div class="logout-btn">
+                <a href="/cgi-bin/logout.cgi">Logout</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Window -->
+    <div class="chat-window">
+        <div class="chat-header" id="chatHeader">Select a friend to start chatting.</div>
+        
+        <div class="chat-box" id="chatBox">
+            <div id="noChatSelected">
+                <p>No chat selected. Choose a friend from the list.</p>
+            </div>
+        </div>
+        
+        <div class="chat-input" id="chatInputBar" style="display: none;">
+            <form id="chatForm">
+                <input type="text" id="msgInput" placeholder="Type a message..." autocomplete="off" required>
+                <button type="submit">Send</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Global state variables
+    let activeFriend = '';
+    let lastMessages = [];
+    
+    // DOM references
+    const friendList = document.getElementById('friendList');
+    const chatHeader = document.getElementById('chatHeader');
+    const chatBox = document.getElementById('chatBox');
+    const chatForm = document.getElementById('chatForm');
+    const msgInput = document.getElementById('msgInput');
+    const chatInputBar = document.getElementById('chatInputBar');
+    const noChatSelected = document.getElementById('noChatSelected');
+
+    // --- Core Functions ---
+
+    // Function to handle friend selection
+    function selectFriend(friendName) {
+        // CRITICAL FIX: Trim the friendName to remove any trailing whitespace 
+        // that might have been left by the C CGI output in friend.cgi.
+        const cleanFriendName = friendName.trim(); 
+        
+        if (activeFriend === cleanFriendName) return;
+
+        // 1. Stop previous chat polling
+        if (window.chatInterval) {
+            clearInterval(window.chatInterval);
+        }
+        
+        // 2. Update active friend state
+        activeFriend = cleanFriendName;
+        lastMessages = []; 
+
+        // 3. Update UI
+        chatHeader.innerText = `Chatting with: ${cleanFriendName}`;
+        chatInputBar.style.display = 'flex';
+        noChatSelected.style.display = 'none';
+        
+        // Update active class
+        document.querySelectorAll('.friend').forEach(el => el.classList.remove('active'));
+        const activeEl = document.querySelector(`.friend[data-name="${cleanFriendName}"]`);
+        if(activeEl) activeEl.classList.add('active');
+
+        // 4. Load messages immediately
+        loadChat();
+
+        // 5. Start polling for new messages
+        window.chatInterval = setInterval(loadChat, 2000); 
+    }
+
+    // Function to load friend list from CGI
+    async function loadFriends() {
+        friendList.innerHTML = '<p style="padding: 15px; text-align: center; color: #7f8b96;">Loading friends...</p>';
+        const cacheBuster = Date.now();
+        const friendsCgiUrl = window.location.origin + `/cgi-bin/friend.cgi?t=${cacheBuster}`;
+
+        try {
+            const response = await fetch(friendsCgiUrl);
+            const friendsHtml = await response.text();
+            
+            // The CGI script returns HTML divs with class="friend"
+            friendList.innerHTML = friendsHtml;
+            
+            if (friendsHtml.trim() === '') {
+                 friendList.innerHTML = `<p style="padding: 15px; text-align: center; color: #7f8b96;">No friends yet. Add some in the Manage Friends section!</p>`;
+            }
+            
+            // Attach click handlers to the newly loaded friend elements
+            document.querySelectorAll('.friend').forEach(friendEl => {
+                const friendName = friendEl.getAttribute('data-name');
+                friendEl.addEventListener('click', () => {
+                    selectFriend(friendName);
+                });
+            });
+
+            // If a friend was previously active, re-select it (e.g., after page refresh)
+            if (activeFriend) {
+                const activeEl = document.querySelector(`.friend[data-name="${activeFriend}"]`);
+                if (activeEl) {
+                    selectFriend(activeFriend);
+                } else {
+                    // If the active friend is no longer in the list (e.g., removed), reset state
+                    activeFriend = '';
+                    chatHeader.innerText = 'Select a friend to start chatting.';
+                }
+            }
+        } catch (error) {
+            console.error("Error loading friend list from CGI:", error);
+            friendList.innerHTML = '<div style="padding: 10px; color: #ff7b72;">Error loading friends.</div>';
+        }
+    }
+
+    // Function to load chat messages from CGI
+    async function loadChat() {
+        if (!activeFriend) return;
+        
+        const cacheBuster = Date.now();
+        const loadCgiUrl = window.location.origin + `/cgi-bin/chat.cgi?friend=${encodeURIComponent(activeFriend)}&t=${cacheBuster}`;
+
+        try {
+            const response = await fetch(loadCgiUrl);
+            const messagesText = await response.text();
+            
+            // Get non-empty lines, trim the whole message text before splitting
+            const lines = messagesText.trim().split('\n').filter(line => line.length > 0);
+            
+            // Only update the DOM if the messages have changed
+            if(lines.join("\\n") !== lastMessages.join("\\n")) {
+                chatBox.innerHTML = '';
+                noChatSelected.style.display = 'none';
+
+                lines.forEach(line => {
+                    if(!line) return;
+                    
+                    const parts = line.split("|");
+                    
+                    if(parts.length === 2) {
+                        // CRITICAL FIX: Trim the sender name and content from the C CGI output
+                        const fileSender = parts[0].trim();
+                        const messageContent = parts[1].trim(); 
+                        
+                        // If the sender's name from the file matches the active friend's name, 
+                        // it's a message *from* the friend. Otherwise, it's *from* the current user (me).
+                        const isFriendMsg = fileSender === activeFriend; 
+                        
+                        const div = document.createElement("div");
+                        div.classList.add("msg", isFriendMsg ? "friend-msg" : "me");
+                        div.innerText = messageContent; 
+                        chatBox.appendChild(div);
+                    }
+                });
+                
+                chatBox.scrollTop = chatBox.scrollHeight;
+                lastMessages = lines;
+            }
+        } catch (error) {
+            console.error("Error loading chat messages from CGI:", error);
+        }
+    }
+
+    // Send message
+    chatForm.addEventListener("submit", async e => {
+        e.preventDefault();
+        const msg = msgInput.value.trim();
+        if (!msg || !activeFriend) return;
+        
+        const sendCgiUrl = window.location.origin + `/cgi-bin/chat.cgi?friend=${encodeURIComponent(activeFriend)}&content=${encodeURIComponent(msg)}`;
+        
+        // Simple UI feedback while sending
+        msgInput.disabled = true;
+        
+        try {
+            await fetch(sendCgiUrl); 
+        } catch (error) {
+            console.error("Error sending message to CGI:", error);
+        }
+        
+        msgInput.disabled = false;
+        msgInput.value = "";
+        msgInput.focus();
+        loadChat(); 
+    });
+
+    // Initial load sequence
+    document.addEventListener('DOMContentLoaded', () => {
+        loadFriends();
+    });
+
+    // Handle window closing/navigating away to stop polling
+    window.addEventListener('beforeunload', () => {
+        if (window.chatInterval) {
+            clearInterval(window.chatInterval);
+        }
+    });
+
+</script>
+
+</body>
+</html>

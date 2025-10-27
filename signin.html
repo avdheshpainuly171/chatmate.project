@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signin | ChatMate</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font */
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#238636', /* GitHub green */
+                        'bg-main': '#0d1117',
+                        'bg-card': '#161b22',
+                        'border-dark': '#30363d',
+                        'text-light': '#e6edf3',
+                        'error-bg': 'rgba(248, 81, 73, 0.25)',
+                        'error-text': '#f85149',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-bg-main text-text-light min-h-screen flex justify-center items-center p-4">
+    <div class="w-full max-w-sm bg-bg-card p-8 sm:p-10 rounded-xl shadow-2xl border border-border-dark">
+        <div class="text-center mb-6">
+            <span class="text-6xl mb-2 block" role="img" aria-label="Chat Bubble">💬</span>
+            <h1 class="text-3xl font-extrabold text-primary">ChatMate Signin</h1>
+        </div>
+
+        <!-- Error Message Display Area -->
+        <div id="errorMessage" class="hidden bg-error-bg text-error-text p-3 rounded-lg mb-6 text-center text-sm font-medium transition-all duration-300">
+            Sign-in failed. Please check your username/phone and password.
+        </div>
+
+        <form action="/cgi-bin/auth.cgi" method="get" class="space-y-4">
+            <input type="hidden" name="action" value="signin">
+            
+            <div>
+                <label for="login" class="block text-sm font-medium text-gray-400 mb-1">Username or Phone</label>
+                <input type="text" id="login" name="login" required class="w-full p-3 border border-border-dark rounded-lg bg-[#21262d] text-text-light focus:border-primary focus:ring-primary focus:outline-none transition-colors" placeholder="Enter username or phone">
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-400 mb-1">Password</label>
+                <input type="password" id="password" name="password" required class="w-full p-3 border border-border-dark rounded-lg bg-[#21262d] text-text-light focus:border-primary focus:ring-primary focus:outline-none transition-colors" placeholder="••••••••">
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-[#2ea043] transition-colors duration-200">
+                Sign In
+            </button>
+        </form>
+
+        <div class="text-center mt-6 text-sm">
+            <p class="text-gray-400">
+                Don't have an account? 
+                <a href="signup.html" class="text-[#58a6ff] hover:text-[#79c0ff] font-medium transition-colors duration-200">
+                    Sign Up here
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Check URL for error message and display it
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const errorMessageDiv = document.getElementById('errorMessage');
+
+            if (error === '1') {
+                errorMessageDiv.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>

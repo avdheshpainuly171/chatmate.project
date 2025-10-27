@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Signup | ChatMate</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom font */
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#238636', /* GitHub green */
+                        'bg-main': '#0d1117',
+                        'bg-card': '#161b22',
+                        'border-dark': '#30363d',
+                        'text-light': '#e6edf3',
+                        'error-bg': 'rgba(248, 81, 73, 0.25)',
+                        'error-text': '#f85149',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-bg-main text-text-light min-h-screen flex justify-center items-center p-4">
+    <div class="w-full max-w-sm bg-bg-card p-8 sm:p-10 rounded-xl shadow-2xl border border-border-dark">
+        <div class="text-center mb-6">
+            <span class="text-6xl mb-2 block" role="img" aria-label="Pencil Icon">📝</span>
+            <h1 class="text-3xl font-extrabold text-primary">Create Account</h1>
+        </div>
+
+        <!-- Error Message Display Area -->
+        <div id="errorMessage" class="hidden bg-error-bg text-error-text p-3 rounded-lg mb-6 text-center text-sm font-medium transition-all duration-300">
+            <!-- Content filled by JavaScript -->
+        </div>
+
+        <form action="/cgi-bin/auth.cgi" method="get" class="space-y-4">
+            <input type="hidden" name="action" value="signup">
+
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-400 mb-1">Username (Required)</label>
+                <input type="text" id="username" name="username" required minlength="3" class="w-full p-3 border border-border-dark rounded-lg bg-[#21262d] text-text-light focus:border-primary focus:ring-primary focus:outline-none transition-colors" placeholder="Choose a unique username">
+            </div>
+            
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-400 mb-1">Password (Required)</label>
+                <input type="password" id="password" name="password" required minlength="6" class="w-full p-3 border border-border-dark rounded-lg bg-[#21262d] text-text-light focus:border-primary focus:ring-primary focus:outline-none transition-colors" placeholder="••••••••">
+            </div>
+
+            <div>
+                <label for="phone" class="block text-sm font-medium text-gray-400 mb-1">Phone (Optional)</label>
+                <input type="text" id="phone" name="phone" class="w-full p-3 border border-border-dark rounded-lg bg-[#21262d] text-text-light focus:border-primary focus:ring-primary focus:outline-none transition-colors" placeholder="123-456-7890">
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-[#2ea043] transition-colors duration-200">
+                Sign Up
+            </button>
+        </form>
+
+        <div class="text-center mt-6 text-sm">
+            <p class="text-gray-400">
+                Already have an account? 
+                <a href="signin.html" class="text-[#58a6ff] hover:text-[#79c0ff] font-medium transition-colors duration-200">
+                    Sign In here
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Check URL for error message and display it
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const error = urlParams.get('error');
+            const errorMessageDiv = document.getElementById('errorMessage');
+
+            if (error) {
+                errorMessageDiv.classList.remove('hidden');
+                if (error === '1') {
+                    // Error 1: Username already exists
+                    errorMessageDiv.innerText = "Sign-up failed: This username is already taken. Please choose another one.";
+                } else if (error === '2') {
+                    // Error 2: File write error (server side)
+                    errorMessageDiv.innerText = "Sign-up failed due to a server error. Please check file permissions or try again later.";
+                }
+            }
+        });
+    </script>
+</body>
+</html>

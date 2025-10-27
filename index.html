@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome | ChatMate</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+   <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+
+    .bg-custom-hero {
+      background-image: url('Picture1.png');
+      background-size: cover;
+      background-position: center;
+      background-attachment: fixed;
+      box-shadow: inset 0 0 0 2000px rgba(13, 17, 23, 0.75);
+    }
+  </style>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary': '#238636', /* GitHub green */
+                        'bg-main': '#0d1117',
+                        'bg-card': '#161b22',
+                        'border-dark': '#30363d',
+                        'text-light': '#e6edf3',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-custom-hero text-text-light min-h-screen flex justify-center items-center p-4">
+    <div class="w-full max-w-lg bg-bg-card/90 p-8 sm:p-10 rounded-xl shadow-2xl border border-border-dark backdrop-blur-sm">
+        <header class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-white mb-2 tracking-tight">
+                Chat<span class="text-primary">Mate</span>
+            </h1>
+            <p class="text-gray-400 text-lg">
+                Your private and secure chat application.
+            </p>
+        </header>
+
+        <!-- The main C code will output content here if the user is logged in, 
+             or redirect if they are not. This is the logged-out display. -->
+        <main class="text-center">
+            <p class="text-gray-300 mb-8">
+                Connect with friends and start chatting instantly. Sign in or create an account to get started!
+            </p>
+            <div class="flex flex-col sm:flex-row justify-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <a href="signin.html" class="w-full sm:w-auto py-3 px-6 bg-primary text-white font-semibold rounded-lg shadow-md hover:bg-[#2ea043] transition-colors duration-200 text-lg">
+                    Sign In
+                </a>
+                <a href="signup.html" class="w-full sm:w-auto py-3 px-6 border border-primary text-primary font-semibold rounded-lg shadow-md hover:bg-primary/10 transition-colors duration-200 text-lg">
+                    Create Account
+                </a>
+            </div>
+        </main>
+    </div>
+</body>
+</html>
+
+
