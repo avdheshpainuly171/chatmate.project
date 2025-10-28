@@ -3,14 +3,13 @@
 #include <string.h>
 #include <sys/stat.h>
 
-// --- Configuration (Standardizing Paths) ---
+
 #define SESSIONS_FILE "C:\\xampp\\cgi-bin\\sessions.txt"
 #define USERS_FILE "C:\\xampp\\cgi-bin\\users.txt"
 #define FRIENDS_FILE "C:\\xampp\\cgi-bin\\friends.txt"
 #define MAX_LINE 256
 #define SESSION_KEY "session_id="
 
-// Helper function: Simple URL decode
 void decode(char *str) {
     char *p = str;
     int hex;
@@ -29,7 +28,7 @@ void decode(char *str) {
     *p = '\0';
 }
 
-// Helper function: Get parameter from query string
+
 char* get_query_param(const char *query, const char *key) {
     if (!query) return NULL;
     char *temp_query = strdup(query);
@@ -39,10 +38,10 @@ char* get_query_param(const char *query, const char *key) {
     while (token != NULL) {
         char *eq = strchr(token, '=');
         if (eq) {
-            *eq = '\0'; // Split token into key and value
+            *eq = '\0'; 
             if (strcmp(token, key) == 0) {
                 result = strdup(eq + 1);
-                decode(result); // Decode the value
+                decode(result);
                 break;
             }
         }
@@ -52,7 +51,6 @@ char* get_query_param(const char *query, const char *key) {
     return result;
 }
 
-// Helper function: Extracts session ID from the cookie
 char* get_session_id() {
     char *cookie_string = getenv("HTTP_COOKIE");
     if (!cookie_string) return NULL;
@@ -68,7 +66,6 @@ char* get_session_id() {
     return session_id;
 }
 
-// Function to get username from a valid session ID
 int get_username_from_session(const char *session_id, char *username) {
     if (!session_id) return 0;
     FILE *fp = fopen(SESSIONS_FILE, "r");
@@ -83,7 +80,7 @@ int get_username_from_session(const char *session_id, char *username) {
             char *user = strtok(NULL, "|");
 
             if (sid && user && strcmp(sid, session_id) == 0) {
-                // Found a valid session, copy the username and clean it up
+        
                 user[strcspn(user, "\n")] = 0; 
                 strcpy(username, user);
                 fclose(fp);
@@ -92,10 +89,9 @@ int get_username_from_session(const char *session_id, char *username) {
         }
         fclose(fp);
     }
-    return 0; // Session not found or file error
+    return 0; 
 }
 
-// Function to check if a user exists
 int user_exists(const char *username) {
     FILE *fp = fopen(USERS_FILE, "r");
     if (!fp) return 0;
@@ -291,7 +287,7 @@ int main() {
 
     printf("        </div>\n");
 
-    // Back to Chat Link
+
     printf("        <div class=\"mt-8\">\n");
     printf("            <a href=\"/chat_app/chat.html\" class=\"w-full block text-center py-3 bg-gray-600/50 text-gray-300 font-semibold rounded-lg hover:bg-gray-600/70 transition-colors\">\n");
     printf("                ← Back to Chat\n");
@@ -302,11 +298,10 @@ int main() {
     printf("</body>\n");
     printf("</html>\n");
 
-    // Clean up allocated memory
+   
     if (session_id) free(session_id);
     if (friend_to_add) free(friend_to_add);
     if (message) free(message);
 
     return 0;
 }
-
