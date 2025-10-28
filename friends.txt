@@ -1,6 +1,5 @@
-kk the_nerball
-the_nerdball kk
 kk|the_nerdball
 bot1|kk
 bot1|the_nerdball
 bot2|the_nerdball
+
